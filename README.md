@@ -10,3 +10,4 @@ Output file will consist of a csv file containing bibliographic data for the ISB
 
 ###To do: 
 * output a csv file of bibliographic data for records NOT found in the Worldcat library symbol(s).
+* OR return records for all the input records with a flag for the library symbol
