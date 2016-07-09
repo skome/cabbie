@@ -1,11 +1,5 @@
-#! /usr/bin/python2.7
-# get library catalog URL for a library and record
-# You can provide more than one OCLC symbol in the request. Separate multiple values with a comma, for example:
-# but we can't ask for all 50 at once...
-# request format is:
-# http://www.worldcat.org/webservices/catalog/content/libraries/15550774?oclcsymbol=OSU,STF&wskey=[key] 
-# http://worldcat.org/devnet/wiki/SearchAPIDetails
-#
+#! /usr/bin/python
+
 import os,sys,time
 import urllib2
 from xml.dom import minidom
@@ -22,7 +16,7 @@ SRUELEM = 'srw.bn'#ISBN
 #SRUELEM = 'srw.no'#OCLC Num 
 MARCCODES = ['001','020','050','245','264']
 doc=""" 
-%prog [inputfile] [outputfile]]
+Usage: %prog [inputfile] [outputfile]]
 """
 lCodes=[]
 # Set up the worldcat SRU request 
@@ -97,17 +91,14 @@ def search(lCodes):
 if __name__ == "__main__":
     fileIn = sys.argv[1]
     fileOut = sys.argv[2]    
-    bf = inputFile(fileIn)
-    rf = outputFile(fileOut)
-    bfh = bf.opened()
-    rfh = rf.opened()
-    csvOut = csv.writer(rfh, quoting=csv.QUOTE_NONNUMERIC)
-    csvOut.writerow(['ISBN','code1','code2'])
-    bList = codesList(bfh) #Returns a de-duped list
-    lCodes = bList.listed()
-    results = search(lCodes)
-    print('Found {} matches'.format(len(results)))
-    for row in results:
-       csvOut.writerow(row) 
-    rfh.close()
-    print 'The file {} is complete.'.format(fileOut)
+	with (open(fileIn, 'r') as bfh and open(fileOut, 'w') as rfh):
+		csvOut = csv.writer(rfh, quoting=csv.QUOTE_NONNUMERIC)
+		csvOut.writerow(['ISBN','code1','code2'])
+		bList = codesList(bfh) #Returns a de-duped list
+		lCodes = bList.listed()
+		results = search(lCodes)
+		print('Found {} matches'.format(len(results)))
+		for row in results:
+		   csvOut.writerow(row) 
+		rfh.close()
+		print 'The file {} is complete.'.format(fileOut)
