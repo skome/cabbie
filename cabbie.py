@@ -24,27 +24,6 @@ sru = SRURequest(wskey=WSKEY)
 sru.args['servicelevel'] = SVCLVL
 sru.url = 'http://www.worldcat.org/webservices/catalog/search/worldcat/sru'
 
-class inputFile:
-    def __init__(self, sInFileName):
-        self.iname = sInFileName
-    def opened(self):
-        try:
-            searchFile = open(self.iname,'r')
-            return searchFile
-        except:
-            return "Badness"
-        
-class outputFile:
-    def __init__(self,sOutFileName):
-        self.iname = sOutFileName
-    def opened(self):
-      try:
-        outFile = open(self.iname,'w')
-        return outFile
-      except:
-            print "Unexpected error:", sys.exc_info()[0]
-            raise
-
 class codesList:
     def __init__(self, fh):
         self.codeFile = fh
@@ -91,14 +70,13 @@ def search(lCodes):
 if __name__ == "__main__":
     fileIn = sys.argv[1]
     fileOut = sys.argv[2]    
-	with (open(fileIn, 'r') as bfh and open(fileOut, 'w') as rfh):
-		csvOut = csv.writer(rfh, quoting=csv.QUOTE_NONNUMERIC)
-		csvOut.writerow(['ISBN','code1','code2'])
-		bList = codesList(bfh) #Returns a de-duped list
-		lCodes = bList.listed()
-		results = search(lCodes)
-		print('Found {} matches'.format(len(results)))
-		for row in results:
-		   csvOut.writerow(row) 
-		rfh.close()
-		print 'The file {} is complete.'.format(fileOut)
+    with open(fileIn, 'r') as bfh , open(fileOut, 'w') as rfh:
+        csvOut = csv.writer(rfh, quoting=csv.QUOTE_NONNUMERIC)
+        csvOut.writerow(['ISBN','code1','code2'])
+        bList = codesList(bfh) #Returns a de-duped list
+        lCodes = bList.listed()
+        results = search(lCodes)
+        print('Found {} matches'.format(len(results)))
+        for row in results:
+            csvOut.writerow(row) 
+        print 'The file {} is complete.'.format(fileOut)
