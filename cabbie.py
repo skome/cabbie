@@ -12,7 +12,7 @@ WSKEY = 'EOdqmdJaycDuD5oEdJgAei89D1qEfmY4xS7iAah4arZYUWhHP4KVP7i6C5Dg4YYegw04dgY
 SVCLVL = 'full'
 SRUELEM = 'srw.bn'#ISBN
 #SRUELEM = 'srw.no'#OCLC Num 
-MARCCODES = ['001','020','050','245','264']
+MARCCODES = ['001','020','050','245']
 doc=""" 
 Usage: %prog [inputfile] [outputfile]]
 """
@@ -32,36 +32,42 @@ class codesList: #read in file, de-dupe
         lines = list(set(lines)) #De-dupe the list
         return lines
 
-def search(lCodes):
-   lcabsHeld = []
-   numCodes = 0
-   #loop through the list of book codes, search WC, write results to output file
-   for numCodes, lCode in enumerate(lCodes):
-      print ('{} / {}\r'.format(numCodes, len(lCodes))),
-      sys.stdout.flush()
-      #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
-      query = '({}="{}") and (srw.li="{}")'.format(SRUELEM,lCode,LIBS)
-      sru.args['query'] = query # set the query
-      results = pymarc_extract(sru.get_response().data) # send the query
-
-      try:#Extract the fields we want from the result set. Some fields we want may be unavailable 
-         for r in results:
-            lItem = []
+def makeItemList(pymarcResults, lib, lCode):
+    lItem = []
+    try:#Extract the fields we want from the result set. Some fields we want may be unavailable 
+        for r in pymarcResults:
+            lItem.append(lib)#the library symbol, if any
             lItem.append(lCode)#the code we sent to look up the results
             for rec in MARCCODES:
                try:
-                  lItem.append(r[rec].format_field().encode('utf-8'))
+                   lItem.append(r[rec].format_field().encode('utf-8'))
                except AttributeError:
-                  lItem.append('{}=n/a'.format(rec))
-                  #Ex what tags are present: taglist = [x.tag for x in results[0].get_fields()]
-                  #for t in taglist:
-                  #   print t,#r[t].format_field(),
-            print lItem      
-            lcabsHeld.append(lItem) 
-      except Exception as e:
-         print "Error: ",e
-   #print lcabsHeld
-   return lcabsHeld
+                   lItem.append('{}=n/a'.format(rec))
+    except Exception as e:
+        print "Error: ",e
+    return lItem
+    
+def search(lCodes):
+    lcabsHeld = []
+    lcabsNotHeld = []
+    numCodes = 0
+    #loop through the list of book codes, search WC, write results to output file
+    for numCodes, lCode in enumerate(lCodes):
+        print ('{} / {}\r'.format(numCodes, len(lCodes))),
+        sys.stdout.flush()
+        query = '({}="{}") and (srw.li="{}")'.format(SRUELEM,lCode,LIBS) #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
+        sru.args['query'] = query # set the query
+        results = pymarc_extract(sru.get_response().data) # send the query, extract the results from MARC into list
+        if len(results) ==0:
+            libs='ALL'
+            query = '({}="{}")'.format(SRUELEM,lCode) #no library code; search all libs
+            sru.args['query'] = query # set the query
+            results = pymarc_extract(sru.get_response().data) # send the query, extract the results from MARC into list          
+            lcabsNotHeld.append(makeItemList(results,libs,lCode))
+        else:
+            libs = LIBS
+            lcabsHeld.append(makeItemList(results,libs,lCode))
+    return lcabsHeld, lcabsNotHeld
  
 if __name__ == "__main__":
     fileIn = sys.argv[1]
@@ -71,8 +77,10 @@ if __name__ == "__main__":
         csvOut.writerow(['ISBN','code1','code2'])
         bList = codesList(cabCodes) #Returns a de-duped list
         lCodes = bList.listed()
-        matches = search(lCodes) # look them all up, return worldcat bib data 
-        print('Found {} matches'.format(len(matches)))
-        for row in matches: # write the resutls to a csv file
+        matches, nonmatches = search(lCodes) # look them all up, return worldcat bib data 
+        print('Found {} matches and {} nonmatches'.format(len(matches), len(nonmatches)))
+        for row in matches: # write the results to a csv file
             csvOut.writerow(row) 
+        for row in nonmatches:
+            csvOut.writerow(row)
         print 'The file {} is complete.'.format(fileOut)
