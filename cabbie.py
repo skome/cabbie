@@ -1,8 +1,6 @@
 #! /usr/bin/python
-
 import os,sys,time
 import urllib2
-from xml.dom import minidom
 from worldcat.request.search import SRURequest
 from worldcat.util.extract import extract_elements, pymarc_extract
 import csv
@@ -34,7 +32,6 @@ class codesList: #read in file, de-dupe
         lines = list(set(lines)) #De-dupe the list
         return lines
 
-
 def search(lCodes):
    lcabsHeld = []
    numCodes = 0
@@ -44,8 +41,8 @@ def search(lCodes):
       sys.stdout.flush()
       #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
       query = '({}="{}") and (srw.li="{}")'.format(SRUELEM,lCode,LIBS)
-      sru.args['query'] = query 
-      results = pymarc_extract(sru.get_response().data)
+      sru.args['query'] = query # set the query
+      results = pymarc_extract(sru.get_response().data) # send the query
 
       try:#Extract the fields we want from the result set. Some fields we want may be unavailable 
          for r in results:
@@ -74,8 +71,8 @@ if __name__ == "__main__":
         csvOut.writerow(['ISBN','code1','code2'])
         bList = codesList(cabCodes) #Returns a de-duped list
         lCodes = bList.listed()
-        results = search(lCodes) # look them all up, return worldcat bib data 
-        print('Found {} matches'.format(len(results)))
-        for row in results: # write the resutls to a csv file
+        matches = search(lCodes) # look them all up, return worldcat bib data 
+        print('Found {} matches'.format(len(matches)))
+        for row in matches: # write the resutls to a csv file
             csvOut.writerow(row) 
         print 'The file {} is complete.'.format(fileOut)
