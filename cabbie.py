@@ -24,7 +24,7 @@ sru = SRURequest(wskey=WSKEY)
 sru.args['servicelevel'] = SVCLVL
 sru.url = 'http://www.worldcat.org/webservices/catalog/search/worldcat/sru'
 
-class codesList:
+class codesList: #read in file, de-dupe
     def __init__(self, fh):
         self.codeFile = fh
     def listed(self):
@@ -39,8 +39,7 @@ def search(lCodes):
    lcabsHeld = []
    numCodes = 0
    #loop through the list of book codes, search WC, write results to output file
-   for lCode in lCodes:
-      numCodes +=1
+   for numCodes, lCode in enumerate(lCodes):
       print ('{} / {}\r'.format(numCodes, len(lCodes))),
       sys.stdout.flush()
       #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
@@ -70,13 +69,13 @@ def search(lCodes):
 if __name__ == "__main__":
     fileIn = sys.argv[1]
     fileOut = sys.argv[2]    
-    with open(fileIn, 'r') as bfh , open(fileOut, 'w') as rfh:
-        csvOut = csv.writer(rfh, quoting=csv.QUOTE_NONNUMERIC)
+    with open(fileIn, 'r') as cabCodes , open(fileOut, 'w') as bibsOut:
+        csvOut = csv.writer(bibsOut, quoting=csv.QUOTE_NONNUMERIC)
         csvOut.writerow(['ISBN','code1','code2'])
-        bList = codesList(bfh) #Returns a de-duped list
+        bList = codesList(cabCodes) #Returns a de-duped list
         lCodes = bList.listed()
-        results = search(lCodes)
+        results = search(lCodes) # look them all up, return worldcat bib data 
         print('Found {} matches'.format(len(results)))
-        for row in results:
+        for row in results: # write the resutls to a csv file
             csvOut.writerow(row) 
         print 'The file {} is complete.'.format(fileOut)
