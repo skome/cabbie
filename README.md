@@ -17,3 +17,7 @@ Output file will consist of a csv file containing bibliographic data for the ISB
 
 The Worldcat library(/ies) to search are configurable. The MARC fields returned can be configured in cabbie.py
 
+##Requirements
+* Python 2.x
+* worldcat library
+
