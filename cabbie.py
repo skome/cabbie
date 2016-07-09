@@ -73,13 +73,14 @@ def search(lCodes):
 if __name__ == "__main__":
     fileIn = sys.argv[1]
     fileOut = sys.argv[2]    
+    csvHdr = ['Library','ISBN']+MARCCODES
     with open(fileIn, 'r') as cabCodes , open(fileOut, 'w') as bibsOut:
         csvOut = csv.writer(bibsOut, quoting=csv.QUOTE_NONNUMERIC)
-        csvOut.writerow(['ISBN','code1','code2'])
+        csvOut.writerow(csvHdr)
         bList = codesList(cabCodes) #Returns a de-duped list
         lCodes = bList.listed()
         matches, nonmatches = search(lCodes) # look them all up, return worldcat bib data 
-        print('Found {} matches and {} nonmatches'.format(len(matches), len(nonmatches)))
+        print('{} matches and {} nonmatches, {:.1f}% match rate'.format(len(matches), len(nonmatches),float(len(matches))/len(lCodes)*100))
         for row in matches: # write the results to a csv file
             csvOut.writerow(row) 
         for row in nonmatches:
