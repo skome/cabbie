@@ -7,13 +7,9 @@ import ConfigParser
 config = ConfigParser.RawConfigParser()
 config.read('cabbie.cfg')
 WSKEY = config.get('Auth','wskey')
-
-#Ex: Whole list of LINK+ libraries
-#LIBS = "ALLIU,CAP,CBC,CCO,CDS,CFS,CFV,CLO,CLV,CMM,CPO,CPS,CPT,CPU,CRP,CSF,CSH,CSJ,CSO,CTU,CUF,CWC,GH0,HAY,JQA,JQF,JQJ,JRR,JRS,JRZ,LIV,LLU,LML,LMR,MIS,MVP,NNY,PAP,PN#,PP2,QP9,SDG,SFR,SJP,STA,SVW,SXP,UNL,UOA"
-LIBS = "HDC" #empty string means ALL libraries
-SVCLVL = 'full'
-SRUELEM = 'srw.bn'#ISBN
-#SRUELEM = 'srw.no'#OCLC Num 
+LIBS = config.get('Config', 'LIBS')
+SVCLVL = config.get('Config','SVCLVL')
+SRUELEM = config.get('Config','SRUELEM')
 MARCCODES = ['001','020','050','245','264']
 doc=""" 
 Usage: %prog [inputfile] [outputfile]]
