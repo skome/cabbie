@@ -21,8 +21,11 @@ class codesList: #read in file, de-dupe
         return lines
 
 def getYAMLConfig(fname):
-    with open(fname,'r') as ymlf:
-        config = yaml.load(ymlf)
+    try:
+        with open(fname,'r') as ymlf:
+            config = yaml.load(ymlf)
+    except Exception as e:
+        print "Error accessing config: ",e
     return config
     
 def makeItemList(pymarcResults, lib, lCode):
