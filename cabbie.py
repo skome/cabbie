@@ -3,22 +3,20 @@ import os,sys
 from worldcat.request.search import SRURequest
 from worldcat.util.extract import extract_elements, pymarc_extract
 import csv
-import ConfigParser
-config = ConfigParser.RawConfigParser()
-config.read('cabbie.cfg')
-WSKEY = config.get('Auth','wskey')
-LIBS = config.get('Config', 'LIBS')
-SVCLVL = config.get('Config','SVCLVL')
-SRUELEM = config.get('Config','SRUELEM')
-MARCCODES = ['001','020','050','245','264']
+import yaml
+with open("cabbie.cfg", 'r') as ymlfile:
+    config = yaml.load(ymlfile)
+for section in config:
+    print section
+WSKEY = config['Auth']['WSKEY']
+LIBS = config['Config']['LIBS']
+SVCLVL = config['Config']['SVCLVL']
+SRUELEM = config['Config']['SRUELEM']
+MARCCODES = config['Config']['MARCCODES']
+
 doc=""" 
 Usage: %prog [inputfile] [outputfile]]
 """
-lCodes=[]
-# Set up the worldcat SRU request 
-sru = SRURequest(wskey=WSKEY)
-sru.args['servicelevel'] = SVCLVL
-sru.url = 'http://www.worldcat.org/webservices/catalog/search/worldcat/sru'
 
 class codesList: #read in file, de-dupe
     def __init__(self, fh):
@@ -70,13 +68,18 @@ def search(lCodes):
     return lcabsHeld, lcabsNotHeld
  
 if __name__ == "__main__":
+    lCodes=[]
+    # Set up the worldcat SRU request 
+    sru = SRURequest(wskey=WSKEY)
+    sru.args['servicelevel'] = SVCLVL
+    sru.url = 'http://www.worldcat.org/webservices/catalog/search/worldcat/sru'
     fileIn = sys.argv[1]
     fileOut = sys.argv[2]    
     csvHdr = ['Library','ISBN']+MARCCODES
     with open(fileIn, 'r') as cabCodes , open(fileOut, 'w') as bibsOut:
         csvOut = csv.writer(bibsOut, quoting=csv.QUOTE_NONNUMERIC)
         csvOut.writerow(csvHdr)
-        bList = codesList(cabCodes) #Returns a de-duped list
+        bList = codesList(cabCodes) #Returns a de-duped list, this is why results file will be smaller than source file
         lCodes = bList.listed()
         matches, nonmatches = search(lCodes) # look them all up, return worldcat bib data 
         print('{} matches and {} nonmatches, {:.1f}% match rate'.format(len(matches), len(nonmatches),float(len(matches))/len(lCodes)*100))
