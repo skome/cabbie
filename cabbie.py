@@ -42,6 +42,11 @@ def makeItemList(pymarcResults, lib, lCode):
     except Exception as e:
         print "Error: ",e
     return lItem
+
+def getHeldRatio(numHeld,numNotHeld):
+    if numNotHeld == 0:
+        return 1
+    return float(numHeld)/numNotHeld
     
 def search(lCodes):
     lcabsHeld = []
@@ -51,8 +56,9 @@ def search(lCodes):
 
     #loop through the list of book codes, search WC, write results to output file
     for numCodes, lCode in enumerate(lCodes):
+        heldRatio = getHeldRatio(len(lcabsHeld),len(lcabsNotHeld))
         heldRate = float(len(lcabsHeld))/len(lCodes)
-        print ('Record: {} / {} Held Rate = {:.2f}\r'.format(numCodes, len(lCodes), heldRate)),
+        print ('Record: {} / {} Held/Not Ratio: {:.2f} :1 Match Rate: {:.2f}\r'.format(numCodes, len(lCodes), heldRatio, heldRate)),
         sys.stdout.flush()
         query = '({}="{}") and (srw.li="{}")'.format(SRUELEM,lCode,LIBS) #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
         sru.args['query'] = query # set the query
