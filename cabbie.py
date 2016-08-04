@@ -58,7 +58,7 @@ def search(lCodes):
     for numCodes, lCode in enumerate(lCodes):
         heldRatio = getHeldRatio(len(lcabsHeld),len(lcabsNotHeld))
         heldRate = float(len(lcabsHeld))/len(lCodes)
-        print ('Record: {} / {} Held/Not Ratio: {:.2f} :1 Match Rate: {:.2f}\r'.format(numCodes, len(lCodes), heldRatio, heldRate)),
+        print ('Record: {} / {} Held/Not Ratio: {:.2f}:1 Match Rate: {:.2f}\r'.format(numCodes, len(lCodes), heldRatio, heldRate)),
         sys.stdout.flush()
         query = '({}="{}") and (srw.li="{}")'.format(SRUELEM,lCode,LIBS) #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
         sru.args['query'] = query # set the query
