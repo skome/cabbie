@@ -9,6 +9,7 @@ doc="""
 Usage: %prog [inputfile] [outputfile]]
 """
 cfgFileName = 'cabbie.cfg'
+FRBRgrouping = 'off'
 
 class codesList: #read in file, de-dupe
     def __init__(self, fh):
@@ -85,6 +86,7 @@ if __name__ == "__main__":
     # Set up the worldcat SRU request 
     sru = SRURequest(wskey=WSKEY)
     sru.args['servicelevel'] = SVCLVL
+    sru.args['FRBRgrouping'] = FRBRgrouping
     sru.url = 'http://www.worldcat.org/webservices/catalog/search/worldcat/sru'
     fileIn = sys.argv[1]
     fileOut = sys.argv[2]    
