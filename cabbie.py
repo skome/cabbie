@@ -71,7 +71,6 @@ def search245(resultsList):#specifically doing a title/author search, this subro
     lcabsHeld = []
     lcabsNotHeld = []
     for numCodes, item in enumerate(resultsList):
-        sys.stdout.flush()
         if len(item)>0: #empty items happen and they don't help
             try:# make a short title string to search because the full title prolly won't match
                 shortTitleWords = item[6].split(' ')[0:2] #playing 1, 2, or 3 words
@@ -81,6 +80,7 @@ def search245(resultsList):#specifically doing a title/author search, this subro
             author = item[-1].split(' ')[0].strip(',') #just taking the author's last name
             query = '({} = "{}*") and ({}="{}*") and (srw.li="{}")'.format('srw.ti',shortTitle,'srw.au',author,LIBS) #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
             print ('Title Search: {} / {} {}{}').format(numCodes, len(resultsList),query,'\r'),
+            sys.stdout.flush()
             sru.args['query'] = query # set the query
             results = pymarc_extract(sru.get_response().data) # send the query
             if len(results) == 0: #Honnold has no holdings
@@ -92,7 +92,7 @@ def search245(resultsList):#specifically doing a title/author search, this subro
     return lcabsHeld, lcabsNotHeld
  
 if __name__ == "__main__":
-    config = getYAMLConfig(cfgFileName #read in config values
+    config = getYAMLConfig(cfgFileName) #read in config values
     WSKEY = config['Auth']['WSKEY']
     LIBS = config['Config']['LIBS']
     SVCLVL = config['Config']['SVCLVL']
