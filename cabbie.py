@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/python
 import os,sys
 from worldcat.request.search import SRURequest
 from worldcat.util.extract import extract_elements, pymarc_extract
@@ -8,10 +8,10 @@ import yaml
 doc=""" 
 Usage: %prog [inputfile] [outputfile]]
 """
-cfgFileName = 'cabbie.cfg'
-FRBRgrouping = 'off'
+cfgFileName = 'cabbie.cfg' #OCLC key and some settings live here
+FRBRgrouping = 'on' # control how related works are returned
 
-class codesList: #read in file, de-dupe
+class codesList: #read in a file with a list of values, de-dupe the values
     def __init__(self, fh):
         self.codeFile = fh
     def listed(self):
@@ -21,7 +21,7 @@ class codesList: #read in file, de-dupe
         lines = list(set(lines)) #De-dupe the list
         return lines
 
-def getYAMLConfig(fname):
+def getYAMLConfig(fname): # read the config file values
     try:
         with open(fname,'r') as ymlf:
             config = yaml.load(ymlf)
@@ -29,50 +29,66 @@ def getYAMLConfig(fname):
         print "Error accessing config: ",e
     return config
     
-def makeItemList(pymarcResults, lib, lCode):
+def makeItemList(pymarcResults, lib, lCode): #get the oclc results out from the pymarc object and create a list from them
     lItem = []
     try:#Extract the fields we want from the result set. Some fields we want may be unavailable 
         for r in pymarcResults:
+            lItem = []
             lItem.append(lib)#the library symbol, if any
             lItem.append(lCode)#the code we sent to look up the results
-            for rec in MARCCODES:
+            for rec in MARCCODES: 
                try:
-                   lItem.append(r[rec].format_field().encode('utf-8'))
-               except AttributeError:
-                   lItem.append('{} = n/a'.format(rec))
+                   lItem.append(r[rec].format_field().encode('utf-8'))#add the pymarc record to the list
+               except AttributeError: # no Worldcat data in that marc field
+                   lItem.append('{} = n/a'.format(rec)) 
     except Exception as e:
         print "Error: ",e
     return lItem
 
-def getHeldRatio(numHeld,numNotHeld):
-    if numNotHeld == 0:
-        return 1
-    return float(numHeld)/numNotHeld
-    
-def search(lCodes):
+           
+def search(lCodes): #loop through the list of book codes, search WC, write results to output file
     lcabsHeld = []
     lcabsNotHeld = []
     numCodes = 0
-    heldRate = 0.0
-
-    #loop through the list of book codes, search WC, write results to output file
-    for numCodes, lCode in enumerate(lCodes):
-        heldRatio = getHeldRatio(len(lcabsHeld),len(lcabsNotHeld))
-        heldRate = float(len(lcabsHeld))/len(lCodes)
-        print ('Record: {} / {} Held/Not Ratio: {:.2f}:1 Match Rate: {:.2f}\r'.format(numCodes, len(lCodes), heldRatio, heldRate)),
+    for numCodes, lCode in enumerate(lCodes):#search HDC by ISBN first. Build lists of hits and misses
+        print ('ISBN Search: {} / {} {}').format(numCodes, len(lCodes),'\r'),#print status
         sys.stdout.flush()
         query = '({}="{}") and (srw.li="{}")'.format(SRUELEM,lCode,LIBS) #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
         sru.args['query'] = query # set the query
-        results = pymarc_extract(sru.get_response().data) # send the query, extract the results from MARC into list
-        if len(results) ==0: #Honnold has no holdings, open the search
-            libs='ALL'
+        results = pymarc_extract(sru.get_response().data) # send the query
+        if len(results) ==0: #Honnold has no holdings, open the search to worldwide libraries
+            libs='ALL' 
             query = '({}="{}")'.format(SRUELEM,lCode) #no library code; search all libs
             sru.args['query'] = query # set the query
-            results = pymarc_extract(sru.get_response().data) # send the query, extract the results from MARC into list          
+            results = pymarc_extract(sru.get_response().data) # send the query
             lcabsNotHeld.append(makeItemList(results,libs,lCode))
-        else: #Check Honnold holdings
+        else: #Honnold has holdings
             libs = LIBS
             lcabsHeld.append(makeItemList(results,libs,lCode))
+    return lcabsHeld, lcabsNotHeld
+
+def search245(resultsList):#specifically doing a title/author search, this subroutine needs to be integrated
+    lcabsHeld = []
+    lcabsNotHeld = []
+    for numCodes, item in enumerate(resultsList):
+        sys.stdout.flush()
+        if len(item)>0: #empty items happen and they don't help
+            try:# make a short title string to search because the full title prolly won't match
+                shortTitleWords = item[6].split(' ')[0:1] #playing 1, 2, or 3 words
+                shortTitle = ' '.join(shortTitleWords)
+            except IndexError: #some titles have only one word
+                shortTitle = item[6].split(' ')[0]
+            author = item[-1].split(' ')[0].strip(',') #just taking the author's last name
+            query = '({} = "{}*") and ({}="{}*") and (srw.li="{}")'.format('srw.ti',shortTitle,'srw.au',author,LIBS) #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
+            print ('Title Search: {} / {} {}{}').format(numCodes, len(resultsList),query,'\r'),
+            sru.args['query'] = query # set the query
+            results = pymarc_extract(sru.get_response().data) # send the query
+            if len(results) == 0: #Honnold has no holdings
+                libs=LIBS
+                lcabsNotHeld.append(makeItemList(results,libs,item[1]))
+            else: #Honnold holdings-ish
+                libs = 'HDC-ish'
+                lcabsHeld.append(makeItemList(results,libs,item[1]))
     return lcabsHeld, lcabsNotHeld
  
 if __name__ == "__main__":
@@ -97,9 +113,12 @@ if __name__ == "__main__":
         bList = codesList(cabCodes) #Returns a de-duped list; results file may be smaller than source file
         lCodes = bList.listed()
         matches, nonmatches = search(lCodes) # look them all up, return worldcat bib data 
-        print('{} matches and {} nonmatches, {:.1f}% match rate'.format(len(matches), len(nonmatches),float(len(matches))/len(lCodes)*100))
         for row in matches: # write the results to a csv file
             csvOut.writerow(row) 
-        for row in nonmatches:
+        titlematches, nontitlematches = search245(nonmatches)
+        for row in titlematches:
+            #print('{}\n\n').format(row)
             csvOut.writerow(row)
-        print 'The file {} is complete.'.format(fileOut)
+        for row in nontitlematches:
+            csvOut.writerow(row)
+    print 'The file {} is complete.'.format(fileOut)
