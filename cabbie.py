@@ -74,7 +74,7 @@ def search245(resultsList):#specifically doing a title/author search, this subro
         sys.stdout.flush()
         if len(item)>0: #empty items happen and they don't help
             try:# make a short title string to search because the full title prolly won't match
-                shortTitleWords = item[6].split(' ')[0:1] #playing 1, 2, or 3 words
+                shortTitleWords = item[6].split(' ')[0:2] #playing 1, 2, or 3 words
                 shortTitle = ' '.join(shortTitleWords)
             except IndexError: #some titles have only one word
                 shortTitle = item[6].split(' ')[0]
@@ -92,15 +92,14 @@ def search245(resultsList):#specifically doing a title/author search, this subro
     return lcabsHeld, lcabsNotHeld
  
 if __name__ == "__main__":
-    config = getYAMLConfig(cfgFileName)
+    config = getYAMLConfig(cfgFileName #read in config values
     WSKEY = config['Auth']['WSKEY']
     LIBS = config['Config']['LIBS']
     SVCLVL = config['Config']['SVCLVL']
     SRUELEM = config['Config']['SRUELEM']
     MARCCODES = config['Config']['MARCCODES']
     lCodes=[]
-    # Set up the worldcat SRU request 
-    sru = SRURequest(wskey=WSKEY)
+    sru = SRURequest(wskey=WSKEY)     # Set up the worldcat SRU request object
     sru.args['servicelevel'] = SVCLVL
     sru.args['FRBRgrouping'] = FRBRgrouping
     sru.url = 'http://www.worldcat.org/webservices/catalog/search/worldcat/sru'
@@ -108,17 +107,15 @@ if __name__ == "__main__":
     fileOut = sys.argv[2]    
     csvHdr = ['Library','ISBN']+MARCCODES
     with open(fileIn, 'r') as cabCodes , open(fileOut, 'w') as bibsOut:
-        csvOut = csv.writer(bibsOut, quoting=csv.QUOTE_NONNUMERIC)
+        csvOut = csv.writer(bibsOut, quoting=csv.QUOTE_NONNUMERIC)# set up a csv file
         csvOut.writerow(csvHdr)
-        bList = codesList(cabCodes) #Returns a de-duped list; results file may be smaller than source file
-        lCodes = bList.listed()
-        matches, nonmatches = search(lCodes) # look them all up, return worldcat bib data 
-        for row in matches: # write the results to a csv file
+        bList = codesList(cabCodes) # get the codes from the file
+        lCodes = bList.listed() #a de-duped list of the codes in the file
+        matches, nonmatches = search(lCodes) # look them all up by ISBN, return worldcat bib data 
+        for row in matches: # write the direct matches (on ISBN) to a csv file
             csvOut.writerow(row) 
-        titlematches, nontitlematches = search245(nonmatches)
+        titlematches, nontitlematches = search245(nonmatches) #look for title/author matches
         for row in titlematches:
             #print('{}\n\n').format(row)
-            csvOut.writerow(row)
-        for row in nontitlematches:
             csvOut.writerow(row)
     print 'The file {} is complete.'.format(fileOut)
