@@ -11,7 +11,8 @@ Usage: %prog [inputfile] [outputfile]]
 cfgFileName = 'cabbie.cfg' #OCLC key and some settings live here
 FRBRgrouping = 'on' # control how related works are returned
 
-class codesList: #read in a file with a list of values, de-dupe the values
+class codesList: 
+    """input: file with a list of (ISBN) values. Return:de-duped list."""
     def __init__(self, fh):
         self.codeFile = fh
     def listed(self):
@@ -21,7 +22,8 @@ class codesList: #read in a file with a list of values, de-dupe the values
         lines = list(set(lines)) #De-dupe the list
         return lines
 
-def getYAMLConfig(fname): # read the config file values
+def getYAMLConfig(fname): 
+    """ input: yamlfile path. return: yaml"""
     try:
         with open(fname,'r') as ymlf:
             config = yaml.load(ymlf)
@@ -29,14 +31,15 @@ def getYAMLConfig(fname): # read the config file values
         print "Error accessing config: ",e
     return config
     
-def makeItemList(pymarcResults, lib, lCode): #get the oclc results out from the pymarc object and create a list from them
+def makeItemList(pymarcResults, lib, lCode): 
+    """input: pymarc. return: list of config'd marc fields"""
     lItem = []
     try:#Extract the fields we want from the result set. Some fields we want may be unavailable 
         for r in pymarcResults:
             lItem = []
             lItem.append(lib)#the library symbol, if any
             lItem.append(lCode)#the code we sent to look up the results
-            for rec in MARCCODES: 
+            for rec in MARCCODES: #if rec is '245' don't take the subfield(s), e.g. (r['245']['a'])
                try:
                    lItem.append(r[rec].format_field().encode('utf-8'))#add the pymarc record to the list
                except AttributeError: # no Worldcat data in that marc field
@@ -46,7 +49,8 @@ def makeItemList(pymarcResults, lib, lCode): #get the oclc results out from the 
     return lItem
 
            
-def search(lCodes): #loop through the list of book codes, search WC, write results to output file
+def search(lCodes): 
+    """input: list of (ISBN) codes. Query WC SRU with them. Return enhanced lists of held and not held items"""
     lcabsHeld = []
     lcabsNotHeld = []
     numCodes = 0
@@ -56,7 +60,7 @@ def search(lCodes): #loop through the list of book codes, search WC, write resul
         query = '({}="{}") and (srw.li="{}")'.format(SRUELEM,lCode,LIBS) #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
         sru.args['query'] = query # set the query
         results = pymarc_extract(sru.get_response().data) # send the query
-        if len(results) ==0: #Honnold has no holdings, open the search to worldwide libraries
+        if len(results) == 0: #Honnold has no holdings, open the search to worldwide libraries
             libs='ALL' 
             query = '({}="{}")'.format(SRUELEM,lCode) #no library code; search all libs
             sru.args['query'] = query # set the query
@@ -67,24 +71,30 @@ def search(lCodes): #loop through the list of book codes, search WC, write resul
             lcabsHeld.append(makeItemList(results,libs,lCode))
     return lcabsHeld, lcabsNotHeld
 
-def search245(resultsList):#specifically doing a title/author search, this subroutine needs to be integrated
+def search245(resultsList):
+    """perform SRU title/author search -- for non-matched items (this needs to be integrated)"""
     lcabsHeld = []
     lcabsNotHeld = []
     for numCodes, item in enumerate(resultsList):
         if len(item)>0: #empty items happen and they don't help
-            try:# make a short title string to search because the full title prolly won't match
-                shortTitleWords = item[6].split(' ')[0:2] #playing 1, 2, or 3 words
-                shortTitle = ' '.join(shortTitleWords)
-            except IndexError: #some titles have only one word
-                shortTitle = item[6].split(' ')[0]
-            author = item[-1].split(' ')[0].strip(',') #just taking the author's last name
+            if len(item[6]) == 1: #title for matches (ugly code)
+                shortTitle = item[6]
+            else:
+                try:# make a short title string to search because the full title prolly won't match
+                    shortTitleWords = item[6].split(' ')[0:2] #try 1, 2, or 3 words
+                    shortTitle = ' '.join(shortTitleWords)
+                except IndexError: #some titles have only one word
+                    shortTitle = item[6].split(' ')[0]
+                except TypeError: 
+                    print('TypeError: {}').format(item)
+            author = item[-1].split(' ')[0].strip(',') #author's last name
             query = '({} = "{}*") and ({}="{}*") and (srw.li="{}")'.format('srw.ti',shortTitle,'srw.au',author,LIBS) #Ex: sru.args['query'] = '(srw.no="122347155") and (srw.li="HDC")'
             print ('Title Search: {} / {} {}{}').format(numCodes, len(resultsList),query,'\r'),
             sys.stdout.flush()
             sru.args['query'] = query # set the query
             results = pymarc_extract(sru.get_response().data) # send the query
             if len(results) == 0: #Honnold has no holdings
-                libs=LIBS
+                libs='ALL'
                 lcabsNotHeld.append(makeItemList(results,libs,item[1]))
             else: #Honnold holdings-ish
                 libs = 'HDC-ish'
@@ -116,6 +126,8 @@ if __name__ == "__main__":
             csvOut.writerow(row) 
         titlematches, nontitlematches = search245(nonmatches) #look for title/author matches
         for row in titlematches:
-            #print('{}\n\n').format(row)
             csvOut.writerow(row)
+        print('{} unique codes in the original file.').format(len(lCodes))
+        print('{} code matches').format(len(matches))
+        print('{} title/author matches').format(len(titlematches))
     print 'The file {} is complete.'.format(fileOut)
