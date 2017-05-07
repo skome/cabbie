@@ -103,7 +103,7 @@ def search245(resultsList):
  
 if __name__ == "__main__":
     config = getYAMLConfig(cfgFileName) #read in config values
-    WSKEY = config['Auth']['WSKEY']
+    WSKEY = config['Auth']['WSKEY_SEARCH']
     LIBS = config['Config']['LIBS']
     SVCLVL = config['Config']['SVCLVL']
     SRUELEM = config['Config']['SRUELEM']
