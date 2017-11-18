@@ -7,9 +7,9 @@ import yaml
 
 doc=""" 
 Usage: %prog inputfile outputfile
-inputfile should contain ISBN data, one code per line
-outputfile will be a csv file containing the original ISBN with enriched data from Worldcat and the local library ILS
-Local Library can be specified in the .cfg file.
+Input file should consist of a list of single ISBN codes. They can be 10 or 13 digit.
+Output file will consist of a csv file containing bibliographic data for the ISBN codes. The first field shows the holding library or 'All'
+The Worldcat library(/ies) to search are configurable in the .cfg; the MARC fields returned can be configured in cabbie.py
 """
 cfgFileName = 'cabbie.cfg' #OCLC key and some settings live here
 FRBRgrouping = 'on' # control how related works are returned
