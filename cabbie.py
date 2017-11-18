@@ -6,7 +6,10 @@ import csv
 import yaml
 
 doc=""" 
-Usage: %prog [inputfile] [outputfile]]
+Usage: %prog inputfile outputfile
+inputfile should contain ISBN data, one code per line
+outputfile will be a csv file containing the original ISBN with enriched data from Worldcat and the local library ILS
+Local Library can be specified in the .cfg file.
 """
 cfgFileName = 'cabbie.cfg' #OCLC key and some settings live here
 FRBRgrouping = 'on' # control how related works are returned
